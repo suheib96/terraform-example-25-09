@@ -3,7 +3,7 @@ name: Terraform Workflow
 on: [push,workflow_dispatch]
 
 jobs:
-    terraform-apply:
+    terraform-apply-and-deploy-website:
         runs-on: ubuntu-latest
         if: github.event_name == 'push'
         steps:
@@ -25,6 +25,29 @@ jobs:
             
             - name: Terraform Apply
               run: terraform apply --auto-approve
+
+            - name: ssh setup
+              run: |
+                sleep 10
+                mkdir -p ~/.ssh
+                echo "${{secrets.SSH_PRIVATE_KEY}}" > ~/.ssh/mein_schlüssel
+                chmod 600 ~/.ssh/mein_schlüssel
+                for ip in $(terraform output -json public_ips | jq -r ".[]"); do
+                ssh-keyscan -H $ip >> ~/.ssh/known_hosts
+                done
+            
+            - name: install nginx on ec2
+              run: |
+                  for ip in $(terraform output -json public_ips | jq -r ".[]"); do
+                  ssh -i ~/.ssh/mein_schlüssel ubuntu@$ip "sudo apt update && sudo apt install nginx -y"
+                  done
+
+            - name: deploy website
+              run: |
+                for ip in $(terraform output -json public_ips | jq -r ".[]"); do
+                scp -i ~/.ssh/mein_schlüssel index.html ubuntu@$ip:/home/ubuntu/index.html
+                ssh -i ~/.ssh/mein_schlüssel ubuntu@$ip "sudo cp /home/ubuntu/index.html /var/www/html/index.html"
+                done
     
     
     terraform-destroy:
