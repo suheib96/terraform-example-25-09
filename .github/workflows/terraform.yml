@@ -3,7 +3,7 @@ name: Terraform Workflow
 on: [push,workflow_dispatch]
 
 jobs:
-    terraform:
+    terraform-apply:
         runs-on: ubuntu-latest
         if: github.event_name == 'push'
         steps:
@@ -29,7 +29,7 @@ jobs:
     
     terraform-destroy:
         runs-on: ubuntu-latest
-        if: github.event_name == 'worfklow_dispatch'
+        if: github.event_name == 'workflow_dispatch'
         steps:
             - name: Checkout
               uses: actions/checkout@v7
